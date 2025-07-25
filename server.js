@@ -65,7 +65,7 @@ app.post("/api/data", (req, res) => {
       total_functions,
       completion_time_ms,
       completion_time_formatted,
-      timestamp,
+      timestamp
     ) VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
