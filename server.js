@@ -123,7 +123,7 @@ process.on("SIGINT", () => {
 // #region view
 
 // Endpoint to view all data in HTML format
-app.get("/view", (req, res) => {
+app.get("/view", (_, res) => {
   db.all("SELECT * FROM sorted_game_progress", [], (err, rows) => {
     if (err) {
       res.status(500).send(`Error retrieving data: ${err.message}`);
@@ -161,15 +161,28 @@ app.get("/view", (req, res) => {
           font-family: Arial, sans-serif;
           margin: 20px;
           overflow: hidden; /* Prevent double scrollbars */
+          font-size: larger;
         }
         table {
           border-collapse: collapse;
           width: 100%;
         }
-        th, td {
+         th, td {
           border: 1px solid #ddd;
           padding: 8px;
-          text-align: left;
+          text-align: center; 
+        }
+        td.function-details {
+          text-align: left; 
+        }
+        td.xxx-large{
+          font-size: xxx-large;
+        }
+        td.xx-large{
+          font-size: xx-large;
+        }
+        td.x-large{
+          font-size: x-large;
         }
         th {
           background-color: #f2f2f2;
@@ -215,9 +228,9 @@ app.get("/view", (req, res) => {
               <th>Platzierung</th>
               <th>Name</th>
               <th>verw. Funktionen</th>
-              <th>ges. Funktionen</th>
-              <th>ges. Zeit</th>
-              <th>Zeitpunkt</th>
+              <th>Funktionen ges.</th>
+              <th>Spielzeit</th>
+              <th>Uhrzeit</th>
             </tr>
           </thead>
           <tbody>
@@ -234,14 +247,17 @@ app.get("/view", (req, res) => {
         functionDetails = row.function_details;
       }
 
+      // Extract only the time part from the timestamp (assuming format like "25.7.2025, 19:41:57")
+      const timeOnly = row.timestamp.split(", ")[1] || row.timestamp;
+
       html += `
         <tr>
-          <td>${i + 1 + "."}</td>
-          <td>${row.name}</td>
-          <td><pre>${functionDetails}</pre></td>
-          <td>${row.total_functions}</td>
+          <td class="xxx-large">${i + 1 + "."}</td>
+          <td class="xx-large">${row.name}</td>
+          <td class="function-details"><pre>${functionDetails}</pre></td>
+          <td class="x-large">${row.total_functions}</td>
           <td>${row.completion_time_formatted}</td>
-          <td>${row.timestamp}</td>
+          <td>${timeOnly}</td>
         </tr>
       `;
     });
