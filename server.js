@@ -95,15 +95,41 @@ app.post("/api/data", (req, res) => {
 
 // Get the LAN IP address
 function getLocalIP() {
-  const interfaces = os.networkInterfaces();
-  for (const ifaceList of Object.values(interfaces)) {
-    for (const iface of ifaceList) {
+  const { networkInterfaces } = require("os");
+
+  const interfaces = networkInterfaces();
+  const results = [];
+
+  // Loop through all network interfaces
+  for (const name of Object.keys(interfaces)) {
+    // Skip over loopback interfaces like 127.0.0.1
+    if (name.includes("Loopback") || name.includes("Pseudo")) {
+      continue;
+    }
+
+    for (const iface of interfaces[name]) {
+      // Skip over non-IPv4 and internal interfaces
       if (iface.family === "IPv4" && !iface.internal) {
-        return iface.address;
+        results.push({
+          name: name,
+          address: iface.address,
+        });
       }
     }
   }
-  return "localhost";
+
+  // If we found any interfaces, return the first one
+  // (or you could modify this to return all and let the user choose)
+  if (results.length > 0) {
+    console.log("Available network interfaces:");
+    results.forEach((iface, index) => {
+      console.log(`${index + 1}: ${iface.name} - ${iface.address}`);
+    });
+    return results[0].address;
+  }
+
+  // Fallback to localhost if no network interfaces found
+  return "127.0.0.1";
 }
 
 app.listen(PORT, "0.0.0.0", () => {
