@@ -149,6 +149,7 @@ process.on("SIGINT", () => {
 // #region view
 
 // Endpoint to view all data in HTML format
+// Replace your existing /view endpoint with this one
 app.get("/view", (_, res) => {
   db.all("SELECT * FROM sorted_game_progress", [], (err, rows) => {
     if (err) {
@@ -161,12 +162,6 @@ app.get("/view", (_, res) => {
       // Put "00:00:00" at the bottom
       if (a.completion_time_formatted === "00:00:00") return 1;
       if (b.completion_time_formatted === "00:00:00") return -1;
-
-      // Convert time strings to seconds for comparison
-      const timeToSeconds = (timeStr) => {
-        const [hours, minutes, seconds] = timeStr.split(":").map(Number);
-        return hours * 3600 + minutes * 60 + seconds;
-      };
 
       const aSeconds = timeToSeconds(a.completion_time_formatted);
       const bSeconds = timeToSeconds(b.completion_time_formatted);
@@ -232,17 +227,6 @@ app.get("/view", (_, res) => {
         }
         h1 {
           color: #333;
-          position: sticky;
-          top: 0;
-          background: white;
-          margin-top: 0;
-          padding: 10px 0;
-          z-index: 5;
-        }
-        pre {
-          white-space: pre-wrap;
-          max-width: 300px;
-          overflow-x: auto;
         }
       </style>
     </head>
@@ -259,7 +243,7 @@ app.get("/view", (_, res) => {
               <th>Uhrzeit</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="tableBody">
     `;
 
     // Add rows for each data entry
@@ -288,7 +272,7 @@ app.get("/view", (_, res) => {
       `;
     });
 
-    // Close the HTML and add JavaScript for auto-scrolling
+    // Close the HTML and add JavaScript for auto-scrolling and auto-refresh
     html += `
           </tbody>
         </table>
@@ -355,8 +339,66 @@ app.get("/view", (_, res) => {
             document.addEventListener(event, resetInactivityTimer, { passive: true });
           });
           
-          // Initial setup
+          // Initial setup for auto-scroll
           resetInactivityTimer();
+          
+          // Function to convert time to seconds for sorting
+          function timeToSeconds(timeStr) {
+            if (!timeStr || timeStr === '00:00:00') return Number.MAX_SAFE_INTEGER;
+            const [hours, minutes, seconds] = timeStr.split(':').map(Number);
+            return hours * 3600 + minutes * 60 + seconds;
+          }
+
+          // Function to refresh the table data
+          function refreshData() {
+            fetch('/api/gamedata')
+              .then(response => response.json())
+              .then(data => {
+                // Sort the data
+                data.sort((a, b) => {
+                  // Put "00:00:00" at the bottom
+                  if (a.completion_time_formatted === '00:00:00') return 1;
+                  if (b.completion_time_formatted === '00:00:00') return -1;
+                  
+                  return timeToSeconds(a.completion_time_formatted) - timeToSeconds(b.completion_time_formatted);
+                });
+                
+                // Update the table
+                const tableBody = document.getElementById('tableBody');
+                tableBody.innerHTML = ''; // Clear existing rows
+                
+                data.forEach((row, i) => {
+                  let functionDetails;
+                  try {
+                    const parsed = JSON.parse(row.function_details);
+                    functionDetails = JSON.stringify(parsed, null, 2);
+                  } catch (e) {
+                    functionDetails = row.function_details || '';
+                                   }
+                  
+                  const timeOnly = row.timestamp ? (row.timestamp.split(', ')[1] || row.timestamp) : '';
+                  
+                  const tr = document.createElement('tr');
+                  tr.innerHTML = \`
+                    <td class="xxx-large">\${i + 1}.</td>
+                    <td class="xx-large">\${row.name || ''}</td>
+                    <td class="function-details"><pre>\${functionDetails}</pre></td>
+                    <td class="x-large">\${row.total_functions || 0}</td>
+                    <td>\${row.completion_time_formatted || ''}</td>
+                    <td>\${timeOnly}</td>
+                  \`;
+                  
+                  tableBody.appendChild(tr);
+                });
+              })
+              .catch(error => console.error('Error refreshing data:', error));
+          }
+          
+          // Initial data load
+          refreshData();
+          
+          // Refresh every second
+          setInterval(refreshData, 1000);
         });
       </script>
     </body>
@@ -364,6 +406,26 @@ app.get("/view", (_, res) => {
     `;
 
     res.send(html);
+  });
+});
+
+// Add this helper function at the top of your file
+function timeToSeconds(timeString) {
+  if (!timeString || timeString === "00:00:00") return Number.MAX_SAFE_INTEGER;
+
+  const [hours, minutes, seconds] = timeString.split(":").map(Number);
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+// Add this endpoint to provide the data for the table
+app.get("/api/gamedata", (_, res) => {
+  db.all("SELECT * FROM sorted_game_progress", [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+
+    res.json(rows);
   });
 });
 
