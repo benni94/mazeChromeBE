@@ -2,19 +2,28 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
-const os = require("os");
-const sqlite3 = require("sqlite3").verbose(); // For SQLite
+const sqlite3 = require("sqlite3").verbose();
+
+const isFly = !!process.env.FLY_APP_NAME;
 
 const app = express();
-const PORT = 3000;
+const port = process.env.PORT || 3000;
 
 // Enable CORS for your extension
 app.use(cors());
 app.use(express.json());
 
 // Initialize database
-const dbPath = path.join(__dirname, "gamedata.db");
-const db = new sqlite3.Database(dbPath);
+const dbPath = isFly
+  ? path.join("/data", "gamedata.db")
+  : path.join(__dirname, "data", "gamedata.db");
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error("Failed to open DB:", err.message);
+  } else {
+    console.log("DB opened at", dbPath);
+  }
+});
 
 // Create table if it doesn't exist
 db.serialize(() => {
@@ -43,27 +52,7 @@ db.serialize(() => {
 app.post("/api/data", (req, res) => {
   const data = req.body;
 
-  const berlin = new Date().toLocaleString("en-GB", {
-    timeZone: "Europe/Berlin",
-  });
-  const [date, time] = berlin.split(", ");
-  const [dd, MM] = date.split("/");
-  const [hh, mm, ss] = time.split(":");
-
-  // Create a unique filename based on timestamp
-  const filename = `data_${hh}_${mm}_${ss}_${dd}_${MM}.json`;
-  const dataDir = path.join(__dirname, "data");
-  const filePath = path.join(dataDir, filename);
-
-  // Ensure data directory exists
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir);
-  }
-
-  // Write data to file
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-
-  // Also save to database
+  // save to database
   const stmt = db.prepare(`
     INSERT INTO game_progress (
       name,
@@ -94,51 +83,59 @@ app.post("/api/data", (req, res) => {
 });
 
 // Get the LAN IP address
-function getLocalIP() {
-  const { networkInterfaces } = require("os");
+if (!isFly) {
+  function getLocalIP() {
+    const { networkInterfaces } = require("os");
 
-  const interfaces = networkInterfaces();
-  const results = [];
+    const interfaces = networkInterfaces();
+    const results = [];
 
-  // Loop through all network interfaces
-  for (const name of Object.keys(interfaces)) {
-    // Skip over loopback interfaces like 127.0.0.1
-    if (name.includes("Loopback") || name.includes("Pseudo")) {
-      continue;
-    }
+    // Loop through all network interfaces
+    for (const name of Object.keys(interfaces)) {
+      // Skip over loopback interfaces like 127.0.0.1
+      if (name.includes("Loopback") || name.includes("Pseudo")) {
+        continue;
+      }
 
-    for (const iface of interfaces[name]) {
-      // Skip over non-IPv4 and internal interfaces
-      if (iface.family === "IPv4" && !iface.internal) {
-        results.push({
-          name: name,
-          address: iface.address,
-        });
+      for (const iface of interfaces[name]) {
+        // Skip over non-IPv4 and internal interfaces
+        if (iface.family === "IPv4" && !iface.internal) {
+          results.push({
+            name: name,
+            address: iface.address,
+          });
+        }
       }
     }
-  }
 
-  // If we found any interfaces, return the first one
-  // (or you could modify this to return all and let the user choose)
-  if (results.length > 0) {
-    console.log("Available network interfaces:");
-    results.forEach((iface, index) => {
-      console.log(`${index + 1}: ${iface.name} - ${iface.address}`);
-    });
-    return results[0].address;
-  }
+    // If we found any interfaces, return the first one
+    // (or you could modify this to return all and let the user choose)
+    if (results.length > 0) {
+      console.log("Available network interfaces:");
+      results.forEach((iface, index) => {
+        console.log(`${index + 1}: ${iface.name} - ${iface.address}`);
+      });
+      return results[0].address;
+    }
 
-  // Fallback to localhost if no network interfaces found
-  return "127.0.0.1";
+    // Fallback to localhost if no network interfaces found
+    return "127.0.0.1";
+  }
 }
 
-app.listen(PORT, "0.0.0.0", () => {
-  const localIP = getLocalIP();
-  console.log("Server is running at:");
-  console.log(`- http://localhost:${PORT}`);
-  console.log(`- http://${localIP}:${PORT} (accessible on local network)`);
-  console.log(`- http://${localIP}:${PORT}/view (view data in browser)`);
-});
+if (isFly) {
+  app.listen(port, "0.0.0.0", () => {
+    console.log(`Server running at http://0.0.0.0:${port}/`);
+  });
+} else {
+  app.listen(port, "0.0.0.0", () => {
+    const localIP = getLocalIP();
+    console.log("Server is running at:");
+    console.log(`- http://localhost:${port}`);
+    console.log(`- http://${localIP}:${port} (accessible on local network)`);
+    console.log(`- http://${localIP}:${port}/view (view data in browser)`);
+  });
+}
 
 // Close database connection when app terminates
 process.on("SIGINT", () => {

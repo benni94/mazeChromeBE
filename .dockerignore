@@ -1,0 +1,19 @@
+# Ignore node modules — they will be installed in Docker
+node_modules
+npm-debug.log
+.DS_Store
+
+# Ignore local environment/config files
+.env
+*.sqlite
+*.db
+
+# Ignore OS or editor files
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Ignore Git-related files
+.git
+.gitignore
