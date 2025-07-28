@@ -1,6 +1,5 @@
 const express = require("express");
 const cors = require("cors");
-const fs = require("fs");
 const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 
@@ -133,7 +132,6 @@ if (isFly) {
     console.log("Server is running at:");
     console.log(`- http://localhost:${port}`);
     console.log(`- http://${localIP}:${port} (accessible on local network)`);
-    console.log(`- http://${localIP}:${port}/view (view data in browser)`);
   });
 }
 
@@ -147,7 +145,7 @@ process.on("SIGINT", () => {
 
 // Endpoint to view all data in HTML format
 // Replace your existing /view endpoint with this one
-app.get("/view", (_, res) => {
+app.get("/", (_, res) => {
   db.all("SELECT * FROM sorted_game_progress", [], (err, rows) => {
     if (err) {
       res.status(500).send(`Error retrieving data: ${err.message}`);
@@ -424,6 +422,278 @@ app.get("/api/gamedata", (_, res) => {
 
     res.json(rows);
   });
+});
+
+// #endregion
+
+// #region amin
+
+// Middleware for basic authentication
+const basicAuth = (req, res, next) => {
+  // Check if Authorization header exists
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    res.setHeader("WWW-Authenticate", "Basic");
+    return res.status(401).send("Authentication required");
+  }
+
+  // Parse the Authorization header
+  const auth = Buffer.from(authHeader.split(" ")[1], "base64")
+    .toString()
+    .split(":");
+  const username = auth[0];
+  const password = auth[1];
+
+  // Check credentials (hardcoded admin/password)
+  if (username === "admin" && password === "password") {
+    next(); // Authentication successful
+  } else {
+    res.setHeader("WWW-Authenticate", "Basic");
+    return res.status(401).send("Invalid credentials");
+  }
+};
+
+// Endpoint to find and replace a name
+app.post("/api/replace-name", basicAuth, (req, res) => {
+  const { findName, replaceName } = req.body;
+
+  if (!findName || !replaceName) {
+    return res.status(400).json({
+      success: false,
+      message: "Both findName and replaceName are required",
+    });
+  }
+
+  // Update records in the database
+  const stmt = db.prepare(`
+    UPDATE game_progress 
+    SET name = ? 
+    WHERE name = ?
+  `);
+
+  stmt.run(replaceName, findName, function (err) {
+    stmt.finalize();
+
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to update names",
+        error: err.message,
+      });
+    }
+
+    // Return the number of rows affected
+    res.status(200).json({
+      success: true,
+      message: `Successfully replaced ${this.changes} occurrences of "${findName}" with "${replaceName}"`,
+      recordsUpdated: this.changes,
+    });
+  });
+});
+
+// Endpoint to drop a specified table
+app.delete("/api/drop-table", basicAuth, (req, res) => {
+  const { tableName } = req.body;
+
+  if (!tableName) {
+    return res.status(400).json({
+      success: false,
+      message: "Table name is required",
+    });
+  }
+
+  // Optional: Add a safety check to prevent dropping critical tables
+  const restrictedTables = ["users", "critical_data"]; // Add your critical tables here
+  if (restrictedTables.includes(tableName)) {
+    return res.status(403).json({
+      success: false,
+      message: "Cannot drop restricted table",
+    });
+  }
+
+  // Execute the DROP TABLE query
+  db.run(`DROP TABLE IF EXISTS ${tableName}`, function (err) {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: `Failed to drop table: ${tableName}`,
+        error: err.message,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Table ${tableName} has been dropped successfully`,
+    });
+  });
+});
+
+// Endpoint to serve the admin dashboard HTML
+app.get("/admin", basicAuth, (_, res) => {
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Admin Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .card {
+            flex: 1;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .danger {
+            background-color: #f44336;
+        }
+        .danger:hover {
+            background-color: #d32f2f;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            box-sizing: border-box;
+        }
+        #message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+    </style>
+</head>
+<body>
+    <h1>Database Admin Dashboard</h1>
+    
+    <div class="container">
+        <div class="card">
+            <h2>Update Name</h2>
+            <form id="updateNameForm">
+                <div>
+                    <label for="findName">Find Name:</label>
+                    <input type="text" id="findName" name="findName" required>
+                </div>
+                <div>
+                    <label for="replaceName">Replace With:</label>
+                    <input type="text" id="replaceName" name="replaceName" required>
+                </div>
+                <button type="submit">Update Names</button>
+            </form>
+        </div>
+        
+        <div class="card">
+            <h2>Drop Table</h2>
+            <form id="dropTableForm">
+                <div>
+                    <label for="tableName">Table Name:</label>
+                    <input type="text" id="tableName" name="tableName" required>
+                </div>
+                <button type="submit" class="danger">Drop Table</button>
+            </form>
+        </div>
+    </div>
+    
+    <div id="message" style="display: none;"></div>
+    
+    <script>
+        document.getElementById('updateNameForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const findName = document.getElementById('findName').value;
+            const replaceName = document.getElementById('replaceName').value;
+            
+            try {
+                const response = await fetch('/api/replace-name', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ findName, replaceName }),
+                });
+                
+                const data = await response.json();
+                showMessage(data.success, data.message);
+            } catch (error) {
+                showMessage(false, 'Error: ' + error.message);
+            }
+        });
+        
+        document.getElementById('dropTableForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!confirm('Are you sure you want to drop this table? This action cannot be undone!')) {
+                return;
+            }
+            
+            const tableName = document.getElementById('tableName').value;
+            
+            try {
+                const response = await fetch('/api/drop-table', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ tableName }),
+                });
+                
+                const data = await response.json();
+                showMessage(data.success, data.message);
+            } catch (error) {
+                showMessage(false, 'Error: ' + error.message);
+            }
+        });
+        
+        function showMessage(isSuccess, message) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = isSuccess ? 'success' : 'error';
+            messageDiv.style.display = 'block';
+            
+            // Scroll to message
+            messageDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
+  `;
+
+  res.send(html);
 });
 
 // #endregion
