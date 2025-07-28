@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Admin Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <h1>Database Admin Dashboard</h1>
+
+    <div class="container">
+        <div class="card">
+            <h2>Update Name</h2>
+            <form id="updateNameForm">
+                <div>
+                    <label for="findName">Find Name:</label>
+                    <input type="text" id="findName" name="findName" required>
+                </div>
+                <div>
+                    <label for="replaceName">Replace With:</label>
+                    <input type="text" id="replaceName" name="replaceName" required>
+                </div>
+                <button type="submit">Update Names</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Drop Table</h2>
+            <form id="dropTableForm">
+                <div>
+                    <label for="tableName">Table Name:</label>
+                    <input type="text" id="tableName" name="tableName" required>
+                </div>
+                <button type="submit" class="danger">Drop Table</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="message" style="display: none;"></div>
+
+    <script>
+        document.getElementById('updateNameForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const findName = document.getElementById('findName').value;
+            const replaceName = document.getElementById('replaceName').value;
+
+            try {
+                const response = await fetch('/api/replace-name', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ findName, replaceName }),
+                });
+
+                const data = await response.json();
+                showMessage(data.success, data.message);
+            } catch (error) {
+                showMessage(false, 'Error: ' + error.message);
+            }
+        });
+
+        document.getElementById('dropTableForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            if (!confirm('Are you sure you want to drop this table? This action cannot be undone!')) {
+                return;
+            }
+
+            const tableName = document.getElementById('tableName').value;
+
+            try {
+                const response = await fetch('/api/drop-table', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ tableName }),
+                });
+
+                const data = await response.json();
+                showMessage(data.success, data.message);
+            } catch (error) {
+                showMessage(false, 'Error: ' + error.message);
+            }
+        });
+
+        function showMessage(isSuccess, message) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = isSuccess ? 'success' : 'error';
+            messageDiv.style.display = 'block';
+
+            // Scroll to message
+            messageDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+
+</html>
