@@ -1,40 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Database Admin Dashboard</title>
+    <title>Datenbank-Admins</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-    <h1>Database Admin Dashboard</h1>
+    <h1>Dashboard für Datenbank-Admins</h1>
 
     <div class="container">
         <div class="card">
-            <h2>Update Name</h2>
+            <h2>Name aktualisieren</h2>
             <form id="updateNameForm">
                 <div>
-                    <label for="findName">Find Name:</label>
+                    <label for="findName">Suchen nach Name:</label>
                     <input type="text" id="findName" name="findName" required>
                 </div>
                 <div>
-                    <label for="replaceName">Replace With:</label>
+                    <label for="replaceName">Ersetzen durch:</label>
                     <input type="text" id="replaceName" name="replaceName" required>
                 </div>
-                <button type="submit">Update Names</button>
+                <button type="submit">Namen aktualisieren</button>
             </form>
         </div>
 
         <div class="card">
-            <h2>Drop Table</h2>
-            <form id="dropTableForm">
+            <h2>Tabelle leeren</h2>
+            <form id="clearTableForm">
                 <div>
-                    <label for="tableName">Table Name:</label>
+                    <label for="tableName">Tabellenname: game_progress</label>
                     <input type="text" id="tableName" name="tableName" required>
                 </div>
-                <button type="submit" class="danger">Drop Table</button>
+                <button type="submit" class="danger">Tabelle leeren</button>
             </form>
         </div>
     </div>
@@ -60,21 +60,21 @@
                 const data = await response.json();
                 showMessage(data.success, data.message);
             } catch (error) {
-                showMessage(false, 'Error: ' + error.message);
+                showMessage(false, 'Fehler: ' + error.message);
             }
         });
 
-        document.getElementById('dropTableForm').addEventListener('submit', async function (e) {
+        document.getElementById('clearTableForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            if (!confirm('Are you sure you want to drop this table? This action cannot be undone!')) {
+            if (!confirm('Sind Sie sicher, dass Sie diese Tabelle l schen wollen? Dieser Vorgang kann nicht r ckgesetzt werden!')) {
                 return;
             }
 
             const tableName = document.getElementById('tableName').value;
 
             try {
-                const response = await fetch('/api/drop-table', {
+                const response = await fetch('/api/clear-table', {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
@@ -85,7 +85,7 @@
                 const data = await response.json();
                 showMessage(data.success, data.message);
             } catch (error) {
-                showMessage(false, 'Error: ' + error.message);
+                showMessage(false, 'Fehler: ' + error.message);
             }
         });
 

@@ -268,7 +268,7 @@ app.post("/api/replace-name", basicAuth, (req, res) => {
   if (!findName || !replaceName) {
     return res.status(400).json({
       success: false,
-      message: "Both findName and replaceName are required",
+      message: "Beide findName und replaceName werden benötigt.",
     });
   }
 
@@ -285,22 +285,30 @@ app.post("/api/replace-name", basicAuth, (req, res) => {
     if (err) {
       return res.status(500).json({
         success: false,
-        message: "Failed to update names",
+        message: "Namen konnten nicht aktuallisiert werden!",
         error: err.message,
       });
     }
 
     // Return the number of rows affected
-    res.status(200).json({
-      success: true,
-      message: `Successfully replaced ${this.changes} occurrences of "${findName}" with "${replaceName}"`,
-      recordsUpdated: this.changes,
-    });
+    if (this.changes === 0) {
+      res.status(200).json({
+        success: false,
+        message: `Keine Name(n) von "${findName}" zu "${replaceName}" ersetzt!`,
+        recordsUpdated: 0,
+      });
+    } else {
+      res.status(200).json({
+        success: true,
+        message: `${this.changes} Name(n) von "${findName}" erfolgreich durch "${replaceName}" ersetzt!`,
+        recordsUpdated: this.changes,
+      });
+    }
   });
 });
 
-// Endpoint to drop a specified table
-app.delete("/api/drop-table", basicAuth, (req, res) => {
+// Endpoint to clear a specified table
+app.delete("/api/clear-table", basicAuth, (req, res) => {
   const { tableName } = req.body;
 
   if (!tableName) {
@@ -310,28 +318,28 @@ app.delete("/api/drop-table", basicAuth, (req, res) => {
     });
   }
 
-  // Optional: Add a safety check to prevent dropping critical tables
+  // Optional: Add a safety check to prevent clearing critical tables
   const restrictedTables = ["users", "critical_data"]; // Add your critical tables here
   if (restrictedTables.includes(tableName)) {
     return res.status(403).json({
       success: false,
-      message: "Cannot drop restricted table",
+      message: "Cannot clear restricted table",
     });
   }
 
-  // Execute the DROP TABLE query
-  db.run(`DROP TABLE IF EXISTS ${tableName}`, function (err) {
+  // Execute the DELETE FROM query
+  db.run(`DELETE FROM ${tableName}`, function (err) {
     if (err) {
       return res.status(500).json({
         success: false,
-        message: `Failed to drop table: ${tableName}`,
+        message: `Failed to clear table: ${tableName}`,
         error: err.message,
       });
     }
 
     res.status(200).json({
       success: true,
-      message: `Table ${tableName} has been dropped successfully`,
+      message: `Table ${tableName} has been cleared successfully`,
     });
   });
 });
