@@ -100,9 +100,9 @@ app.post("/api/data", (req, res) => {
   const data = req.body;
   const name = data.name || "Anonymous";
 
-  // First, check if the name already exists in the database
+  // Check if the name already exists in the database (case-insensitive)
   db.get(
-    "SELECT COUNT(*) as count FROM game_progress WHERE name = ?",
+    "SELECT COUNT(*) as count FROM game_progress WHERE LOWER(name) = LOWER(?)",
     [name],
     (err, result) => {
       if (err) {
@@ -115,7 +115,7 @@ app.post("/api/data", (req, res) => {
       // If name exists, return an error with plain text
       if (result.count > 0) {
         console.log(
-          `Name "${name}" already exists in database. Sending error response.`
+          `Name "${name}" already exists in database (case-insensitive). Sending error response.`
         );
         return res
           .status(400)
