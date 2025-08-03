@@ -28,6 +28,16 @@
         </div>
 
         <div class="card">
+            <h2>Datenbank wiederherstellen</h2>
+            <form id="restoreDbForm">
+                <div>
+                    <label for="backupPath">Backup-Datei: data/gamedata_backup.db</label>
+                </div>
+                <button type="submit" class="warning">Datenbank wiederherstellen</button>
+            </form>
+        </div>
+
+        <div class="card">
             <h2>Tabelle leeren</h2>
             <form id="clearTableForm">
                 <div>
@@ -37,68 +47,13 @@
                 <button type="submit" class="danger">Tabelle leeren</button>
             </form>
         </div>
+
     </div>
 
     <div id="message" style="display: none;"></div>
 
-    <script>
-        document.getElementById('updateNameForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
+    <script src="script.js"></script>
 
-            const findName = document.getElementById('findName').value;
-            const replaceName = document.getElementById('replaceName').value;
-
-            try {
-                const response = await fetch('/api/replace-name', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ findName, replaceName }),
-                });
-
-                const data = await response.json();
-                showMessage(data.success, data.message);
-            } catch (error) {
-                showMessage(false, 'Fehler: ' + error.message);
-            }
-        });
-
-        document.getElementById('clearTableForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
-
-            if (!confirm('Sind Sie sicher, dass Sie diese Tabelle l schen wollen? Dieser Vorgang kann nicht r ckgesetzt werden!')) {
-                return;
-            }
-
-            const tableName = document.getElementById('tableName').value;
-
-            try {
-                const response = await fetch('/api/clear-table', {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ tableName }),
-                });
-
-                const data = await response.json();
-                showMessage(data.success, data.message);
-            } catch (error) {
-                showMessage(false, 'Fehler: ' + error.message);
-            }
-        });
-
-        function showMessage(isSuccess, message) {
-            const messageDiv = document.getElementById('message');
-            messageDiv.textContent = message;
-            messageDiv.className = isSuccess ? 'success' : 'error';
-            messageDiv.style.display = 'block';
-
-            // Scroll to message
-            messageDiv.scrollIntoView({ behavior: 'smooth' });
-        }
-    </script>
 </body>
 
 </html>

@@ -41,7 +41,7 @@ if (!isFly && process.platform !== "win32") {
 }
 
 // Open database with more detailed error handling
-const db = new sqlite3.Database(dbPath, (err) => {
+let db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error("Failed to open DB:", err.message);
     console.error("Database path:", dbPath);
@@ -93,38 +93,83 @@ db.serialize(() => {
   `);
 });
 
-// Endpoint to receive data
+// #region receive data
+
+// Endpoint to receive data with name uniqueness check
 app.post("/api/data", (req, res) => {
   const data = req.body;
+  const name = data.name || "Anonymous";
 
-  // save to database
-  const stmt = db.prepare(`
-    INSERT INTO game_progress (
-      name,
-      level,
-      function_details,
-      total_functions,
-      completion_time_ms,
-      completion_time_formatted,
-      timestamp
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)
-  `);
+  // First, check if the name already exists in the database
+  db.get(
+    "SELECT COUNT(*) as count FROM game_progress WHERE name = ?",
+    [name],
+    (err, result) => {
+      if (err) {
+        console.error("Database error checking name:", err);
+        return res
+          .status(500)
+          .send("Database error when checking name uniqueness: " + err.message);
+      }
 
-  stmt.run(
-    data.name || "Anonymous",
-    data.level,
-    JSON.stringify(data.functionDetails),
-    data.totalFunctions,
-    data.completionTimeMs,
-    data.completionTimeFormatted,
-    data.timestamp
+      // If name exists, return an error with plain text
+      if (result.count > 0) {
+        console.log(
+          `Name "${name}" already exists in database. Sending error response.`
+        );
+        return res
+          .status(400)
+          .send(
+            "Dieser Name wird bereits verwendet. Bitte wählen Sie einen anderen Namen."
+          );
+      }
+
+      // If name is unique, proceed with insertion
+      const stmt = db.prepare(`
+      INSERT INTO game_progress (
+        name,
+        level,
+        function_details,
+        total_functions,
+        completion_time_ms,
+        completion_time_formatted,
+        timestamp
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+      stmt.run(
+        name,
+        data.level,
+        JSON.stringify(data.functionDetails),
+        data.totalFunctions,
+        data.completionTimeMs,
+        data.completionTimeFormatted,
+        data.timestamp,
+        function (err) {
+          if (err) {
+            console.error("Error inserting data:", err);
+            return res.status(500).json({
+              success: false,
+              message: "Failed to save data",
+              error: err.message,
+            });
+          }
+
+          console.log(
+            `Successfully inserted data for "${name}" with ID ${this.lastID}`
+          );
+
+          res.status(200).json({
+            success: true,
+            message: "Data saved successfully",
+            id: this.lastID,
+          });
+        }
+      );
+
+      stmt.finalize();
+    }
   );
-
-  stmt.finalize();
-
-  res
-    .status(200)
-    .json({ success: true, message: "Data received and saved to database" });
 });
 
 // Get the LAN IP address
@@ -186,6 +231,8 @@ process.on("SIGINT", () => {
   process.exit(0);
 });
 
+// #endregion
+
 // #region leaderboard
 
 // Serve static files from the views/leaderboard directory
@@ -210,14 +257,6 @@ app.get("/", (_, res) => {
     res.send(html);
   });
 });
-
-// Add this helper function at the top of your file
-function timeToSeconds(timeString) {
-  if (!timeString || timeString === "00:00:00") return Number.MAX_SAFE_INTEGER;
-
-  const [hours, minutes, seconds] = timeString.split(":").map(Number);
-  return hours * 3600 + minutes * 60 + seconds;
-}
 
 // Add this endpoint to provide the data for the table
 app.get("/api/gamedata", (_, res) => {
@@ -342,6 +381,79 @@ app.delete("/api/clear-table", basicAuth, (req, res) => {
       message: `Table ${tableName} has been cleared successfully`,
     });
   });
+});
+
+app.post("/api/restore-db", basicAuth, (req, res) => {
+  // Define paths
+  const backupDbPath = isFly
+    ? path.join("/data", "gamedata_backup.db")
+    : path.resolve(process.cwd(), "data", "gamedata_backup.db");
+
+  const targetDbPath = isFly
+    ? path.join("/data", "gamedata.db")
+    : path.resolve(process.cwd(), "data", "gamedata.db");
+
+  // Check if backup file exists
+  if (!fs.existsSync(backupDbPath)) {
+    return res.status(404).json({
+      success: false,
+      message: "Backup-Datei nicht gefunden: " + backupDbPath,
+    });
+  }
+
+  try {
+    // Close the current database connection
+    db.close((err) => {
+      if (err) {
+        console.error("Error closing database:", err);
+        return res.status(500).json({
+          success: false,
+          message:
+            "Fehler beim Schließen der Datenbankverbindung: " + err.message,
+        });
+      }
+
+      // Copy the backup file to the target location
+      try {
+        fs.copyFileSync(backupDbPath, targetDbPath);
+
+        // Reopen the database
+        db = new sqlite3.Database(targetDbPath, (err) => {
+          if (err) {
+            console.error("Error reopening database:", err);
+            return res.status(500).json({
+              success: false,
+              message:
+                "Datenbank wurde wiederhergestellt, aber konnte nicht neu geöffnet werden: " +
+                err.message,
+            });
+          }
+
+          // Success response
+          res.status(200).json({
+            success: true,
+            message: "Datenbank wurde erfolgreich wiederhergestellt!",
+          });
+        });
+      } catch (copyErr) {
+        console.error("Error copying database file:", copyErr);
+
+        // Try to reopen the original database
+        db = new sqlite3.Database(targetDbPath);
+
+        return res.status(500).json({
+          success: false,
+          message: "Fehler beim Kopieren der Backup-Datei: " + copyErr.message,
+        });
+      }
+    });
+  } catch (error) {
+    console.error("Unexpected error during database restore:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Unerwarteter Fehler: " + error.message,
+    });
+  }
 });
 
 // Serve static files from the views/admin directory
