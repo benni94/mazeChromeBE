@@ -90,3 +90,74 @@ function showMessage(isSuccess, message) {
   // Scroll to message
   messageDiv.scrollIntoView({ behavior: "smooth" });
 }
+
+// Function to update the service status display
+function updateServiceStatus() {
+  const statusElement = document.getElementById("serviceStatus");
+
+  fetch("/api/backup-service/status", {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      statusElement.textContent = data.message;
+      statusElement.className = data.isRunning
+        ? "status-running"
+        : "status-stopped";
+
+      // Update button states
+      document.getElementById("startServiceBtn").disabled = data.isRunning;
+      document.getElementById("stopServiceBtn").disabled = !data.isRunning;
+    })
+    .catch((error) => {
+      statusElement.textContent =
+        "Fehler beim Abrufen des Status: " + error.message;
+      statusElement.className = "status-error";
+    });
+}
+
+// Add event listeners for the service buttons
+document
+  .getElementById("startServiceBtn")
+  .addEventListener("click", async function () {
+    try {
+      const response = await fetch("/api/backup-service/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      showMessage(data.success, data.message);
+      updateServiceStatus();
+    } catch (error) {
+      showMessage(false, "Fehler: " + error.message);
+    }
+  });
+
+document
+  .getElementById("stopServiceBtn")
+  .addEventListener("click", async function () {
+    try {
+      const response = await fetch("/api/backup-service/stop", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      showMessage(data.success, data.message);
+      updateServiceStatus();
+    } catch (error) {
+      showMessage(false, "Fehler: " + error.message);
+    }
+  });
+
+// Check status when page loads
+document.addEventListener("DOMContentLoaded", function () {
+  updateServiceStatus();
+});

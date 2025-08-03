@@ -9,6 +9,9 @@ const isFly = !!process.env.FLY_APP_NAME;
 const app = express();
 const port = process.env.PORT || 3000;
 
+let backupInterval = null;
+const BACKUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
 // Enable CORS for your extension
 app.use(cors());
 app.use(express.json());
@@ -470,6 +473,90 @@ app.get("/admin", basicAuth, (_, res) => {
     }
 
     res.send(html);
+  });
+});
+
+app.post("/api/backup-service/start", basicAuth, (req, res) => {
+  if (backupInterval) {
+    return res.status(400).json({
+      success: false,
+      message: "Backup-Service läuft bereits",
+    });
+  }
+
+  try {
+    // Start the backup service
+    backupInterval = setInterval(() => {
+      const sourceDbPath = isFly
+        ? path.join("/data", "gamedata.db")
+        : path.resolve(process.cwd(), "data", "gamedata.db");
+
+      const backupDbPath = isFly
+        ? path.join("/data", "gamedata_backup.db")
+        : path.resolve(process.cwd(), "data", "gamedata_backup.db");
+
+      try {
+        fs.copyFileSync(sourceDbPath, backupDbPath);
+        console.log(`Backup created at ${new Date().toISOString()}`);
+      } catch (err) {
+        console.error("Error creating backup:", err);
+      }
+    }, BACKUP_INTERVAL_MS);
+
+    // Create an immediate backup when service starts
+    const sourceDbPath = isFly
+      ? path.join("/data", "gamedata.db")
+      : path.resolve(process.cwd(), "data", "gamedata.db");
+
+    const backupDbPath = isFly
+      ? path.join("/data", "gamedata_backup.db")
+      : path.resolve(process.cwd(), "data", "gamedata_backup.db");
+
+    fs.copyFileSync(sourceDbPath, backupDbPath);
+
+    res.status(200).json({
+      success: true,
+      message: "Backup-Service wurde gestartet",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Fehler beim Starten des Backup-Service: " + error.message,
+    });
+  }
+});
+
+app.post("/api/backup-service/stop", basicAuth, (req, res) => {
+  if (!backupInterval) {
+    return res.status(400).json({
+      success: false,
+      message: "Backup-Service läuft nicht",
+    });
+  }
+
+  try {
+    clearInterval(backupInterval);
+    backupInterval = null;
+    res.status(200).json({
+      success: true,
+      message: "Backup-Service wurde gestoppt",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Fehler beim Stoppen des Backup-Service: " + error.message,
+    });
+  }
+});
+
+app.get("/api/backup-service/status", basicAuth, (req, res) => {
+  res.status(200).json({
+    success: true,
+    isRunning: backupInterval !== null,
+    message:
+      backupInterval !== null
+        ? "Backup-Service läuft"
+        : "Backup-Service ist gestoppt",
   });
 });
 

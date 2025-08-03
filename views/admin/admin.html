@@ -28,6 +28,18 @@
         </div>
 
         <div class="card">
+            <h2>Backup-Service</h2>
+            <p>Der Service erstellt alle 5 Minuten eine Sicherungskopie der Datenbank</p>
+            <form id="backupServiceForm">
+                <div id="serviceStatus">Status wird abgefragt...</div>
+                <div class="button-group">
+                    <button type="button" id="startServiceBtn" class="success">Service starten</button>
+                    <button type="button" id="stopServiceBtn" class="warning">Service stoppen</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
             <h2>Datenbank wiederherstellen</h2>
             <form id="restoreDbForm">
                 <div>
