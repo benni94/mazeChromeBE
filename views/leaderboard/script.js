@@ -1,3 +1,6 @@
+let allData = []; // Store all data for filtering
+let searchTerm = "";
+
 document.addEventListener("DOMContentLoaded", function () {
   const container = document.getElementById("tableContainer");
   let userActive = true;
@@ -119,9 +122,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
           tableBody.appendChild(tr);
         });
+
+        // Store all data
+        allData = data;
+
+        // Update the table with filtered data
+        updateTable(filterData(data, searchTerm));
       })
       .catch((error) => console.error("Error refreshing data:", error));
   }
+
+  document
+    .getElementById("searchInput")
+    .addEventListener("input", handleSearch);
+  document.getElementById("clearSearch").addEventListener("click", clearSearch);
 
   // Initial data load
   refreshData();
@@ -129,3 +143,72 @@ document.addEventListener("DOMContentLoaded", function () {
   // Refresh every second
   setInterval(refreshData, 1000);
 });
+
+// Function to filter data based on search term
+function filterData(data, term) {
+  if (!term) return data;
+
+  term = term.toLowerCase();
+  return data.filter((row) => {
+    return row.name && row.name.toLowerCase().includes(term);
+  });
+}
+
+// Function to update the table with provided data
+function updateTable(data) {
+  // Update the table
+  const tableBody = document.getElementById("tableBody");
+  tableBody.innerHTML = ""; // Clear existing rows
+
+  data.forEach((row, i) => {
+    let functionDetails;
+    try {
+      const parsed = JSON.parse(row.function_details);
+      functionDetails = JSON.stringify(parsed, null, 2);
+    } catch (e) {
+      functionDetails = row.function_details || "";
+    }
+
+    const timeOnly = row.timestamp
+      ? row.timestamp.split(", ")[1] || row.timestamp
+      : "";
+
+    // Find the original position in the unfiltered data
+    const originalPosition = allData.findIndex((item) => item === row) + 1;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+          <td class="xxx-large">${originalPosition}.</td>
+          <td class="xx-large">${row.name || ""}</td>
+          <td class="function-details"><pre>${functionDetails}</pre></td>
+          <td class="x-large">${row.total_functions || 0}</td>
+          <td>${row.completion_time_formatted || ""}</td>
+          <td>${timeOnly}</td>
+        `;
+
+    tableBody.appendChild(tr);
+  });
+}
+
+// Function to handle search input
+function handleSearch() {
+  searchTerm = document.getElementById("searchInput").value.trim();
+
+  // If searching, stop auto-scroll
+  if (searchTerm) {
+    stopAutoScroll();
+    userActive = true; // Prevent auto-scroll from restarting
+  } else {
+    resetInactivityTimer(); // Resume normal behavior
+  }
+
+  updateTable(filterData(allData, searchTerm));
+}
+
+// Function to clear search
+function clearSearch() {
+  document.getElementById("searchInput").value = "";
+  searchTerm = "";
+  resetInactivityTimer();
+  updateTable(allData);
+}

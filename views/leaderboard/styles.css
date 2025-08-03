@@ -61,3 +61,37 @@
  h1 {
      color: #333;
  }
+
+ .search-container {
+     margin-bottom: 15px;
+     display: flex;
+     align-items: center;
+ }
+
+ #searchInput {
+     padding: 10px;
+     font-size: 16px;
+     border: 1px solid #ddd;
+     border-radius: 4px;
+     width: 300px;
+     margin-right: 5px;
+ }
+
+ #clearSearch {
+     background-color: #f1f1f1;
+     border: none;
+     color: #555;
+     font-size: 18px;
+     font-weight: bold;
+     cursor: pointer;
+     height: 38px;
+     width: 38px;
+     border-radius: 4px;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+ }
+
+ #clearSearch:hover {
+     background-color: #ddd;
+ }
