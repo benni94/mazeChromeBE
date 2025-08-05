@@ -1,95 +1,166 @@
- body {
-     font-family: Arial, sans-serif;
-     margin: 20px;
-     font-size: larger;
- }
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    font-size: larger;
+    background-color: #f9f9f9;
+    color: #333;
+}
 
- table {
-     border-collapse: collapse;
-     width: 100%;
- }
+.search-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
 
- th,
- td {
-     border: 1px solid #ddd;
-     padding: 8px;
-     text-align: center;
- }
+#searchInput {
+    padding: 10px;
+    width: 250px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+}
 
- td.function-details {
-     text-align: left;
- }
+#clearSearch {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    margin-left: 10px;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 16px;
+}
 
- td.xxx-large {
-     font-size: xxx-large;
- }
+#clearSearch:hover {
+    background-color: #d32f2f;
+}
 
- td.xx-large {
-     font-size: xx-large;
- }
+.table-container {
+    overflow-x: auto;
+}
 
- td.x-large {
-     font-size: x-large;
- }
+table {
+    border-collapse: collapse;
+    width: 100%;
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
 
- th {
-     background-color: #f2f2f2;
-     position: sticky;
-     top: 0;
-     z-index: 10;
- }
+th,
+td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: center;
+}
 
- tr:nth-child(even) {
-     background-color: #f9f9f9;
- }
+th {
+    background-color: #4CAF50;
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
 
- tr:hover {
-     background-color: #f1f1f1;
- }
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
 
- .container {
-     margin: 0 auto;
-     height: 97vh;
-     overflow-y: auto;
-     overflow-x: auto;
-     scroll-behavior: smooth;
-     position: relative;
- }
+tr:hover {
+    background-color: #f1f1f1;
+}
 
- h1 {
-     color: #333;
- }
+td.function-details {
+    text-align: left;
+}
 
- .search-container {
-     margin-bottom: 15px;
-     display: flex;
-     align-items: center;
- }
+td.xxx-large {
+    font-size: xxx-large;
+}
 
- #searchInput {
-     padding: 10px;
-     font-size: 16px;
-     border: 1px solid #ddd;
-     border-radius: 4px;
-     width: 300px;
-     margin-right: 5px;
- }
+td.xx-large {
+    font-size: xx-large;
+}
 
- #clearSearch {
-     background-color: #f1f1f1;
-     border: none;
-     color: #555;
-     font-size: 18px;
-     font-weight: bold;
-     cursor: pointer;
-     height: 38px;
-     width: 38px;
-     border-radius: 4px;
-     display: flex;
-     align-items: center;
-     justify-content: center;
- }
+td.x-large {
+    font-size: x-large;
+}
 
- #clearSearch:hover {
-     background-color: #ddd;
- }
+.container {
+    position: relative;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    height: 97vh;
+    overflow-y: auto;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+}
+
+.container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 20px;
+    box-shadow: 0 -10px 10px -10px rgba(0, 0, 0, 0.2);
+    /* Shadow on top */
+    z-index: 1;
+}
+
+/* Responsive Design */
+
+@media (max-width: 768px) {
+    body {
+        margin: 10px;
+        font-size: medium;
+    }
+
+    table {
+        font-size: 14px;
+    }
+
+    th,
+    td {
+        padding: 8px;
+    }
+
+    td.xxx-large,
+    td.xx-large,
+    td.x-large {
+        font-size: large;
+    }
+
+    .container {
+        margin: 0 auto;
+        height: 97vh;
+        overflow-y: auto;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        position: relative;
+    }
+}
+
+@media (max-width: 940px) {
+    th, td {
+        /* font-size: 12px; */
+        padding: 6px;
+    }
+
+    /* Hide the third column (function-details) */
+    th:nth-child(3),
+    td:nth-child(3) {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+
+    /* Hide the fourth column (function-details) */
+    th:nth-child(4),
+    td:nth-child(4) {
+        display: none;
+    }
+}

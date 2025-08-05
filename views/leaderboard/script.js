@@ -69,69 +69,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initial setup for auto-scroll
   resetInactivityTimer();
 
-  // Function to convert time to seconds for sorting
-  function timeToSeconds(timeStr) {
-    if (!timeStr || timeStr === "00:00:00") return Number.MAX_SAFE_INTEGER;
-    const [hours, minutes, seconds] = timeStr.split(":").map(Number);
-    return hours * 3600 + minutes * 60 + seconds;
-  }
-
-  // Function to refresh the table data
-  function refreshData() {
-    fetch("/api/gamedata")
-      .then((response) => response.json())
-      .then((data) => {
-        // Sort the data
-        data.sort((a, b) => {
-          // Put "00:00:00" at the bottom
-          if (a.completion_time_formatted === "00:00:00") return 1;
-          if (b.completion_time_formatted === "00:00:00") return -1;
-
-          return (
-            timeToSeconds(a.completion_time_formatted) -
-            timeToSeconds(b.completion_time_formatted)
-          );
-        });
-
-        // Update the table
-        const tableBody = document.getElementById("tableBody");
-        tableBody.innerHTML = ""; // Clear existing rows
-
-        data.forEach((row, i) => {
-          let functionDetails;
-          try {
-            const parsed = JSON.parse(row.function_details);
-            functionDetails = JSON.stringify(parsed, null, 2);
-          } catch (e) {
-            functionDetails = row.function_details || "";
-          }
-
-          const timeOnly = row.timestamp
-            ? row.timestamp.split(", ")[1] || row.timestamp
-            : "";
-
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-                <td class="xxx-large">${i + 1}.</td>
-                <td class="xx-large">${row.name || ""}</td>
-                <td class="function-details"><pre>${functionDetails}</pre></td>
-                <td class="x-large">${row.total_functions || 0}</td>
-                <td>${row.completion_time_formatted || ""}</td>
-                <td>${timeOnly}</td>
-              `;
-
-          tableBody.appendChild(tr);
-        });
-
-        // Store all data
-        allData = data;
-
-        // Update the table with filtered data
-        updateTable(filterData(data, searchTerm));
-      })
-      .catch((error) => console.error("Error refreshing data:", error));
-  }
-
   document
     .getElementById("searchInput")
     .addEventListener("input", handleSearch);
@@ -143,6 +80,29 @@ document.addEventListener("DOMContentLoaded", function () {
   // Refresh every second
   setInterval(refreshData, 1000);
 });
+
+// Function to handle search input
+function handleSearch() {
+  searchTerm = document.getElementById("searchInput").value.trim();
+
+  // If searching, stop auto-scroll
+  if (searchTerm) {
+    stopAutoScroll();
+    userActive = true; // Prevent auto-scroll from restarting
+  } else {
+    resetInactivityTimer(); // Resume normal behavior
+  }
+
+  updateTable(filterData(allData, searchTerm));
+}
+
+// Function to clear search
+function clearSearch() {
+  document.getElementById("searchInput").value = "";
+  searchTerm = "";
+  resetInactivityTimer();
+  updateTable(allData);
+}
 
 // Function to filter data based on search term
 function filterData(data, term) {
@@ -190,25 +150,67 @@ function updateTable(data) {
   });
 }
 
-// Function to handle search input
-function handleSearch() {
-  searchTerm = document.getElementById("searchInput").value.trim();
+// Function to refresh the table data
+function refreshData() {
+  fetch("/api/gamedata")
+    .then((response) => response.json())
+    .then((data) => {
+      // Sort the data
+      data.sort((a, b) => {
+        // Put "00:00:00" at the bottom
+        if (a.completion_time_formatted === "00:00:00") return 1;
+        if (b.completion_time_formatted === "00:00:00") return -1;
 
-  // If searching, stop auto-scroll
-  if (searchTerm) {
-    stopAutoScroll();
-    userActive = true; // Prevent auto-scroll from restarting
-  } else {
-    resetInactivityTimer(); // Resume normal behavior
-  }
+        return (
+          timeToSeconds(a.completion_time_formatted) -
+          timeToSeconds(b.completion_time_formatted)
+        );
+      });
 
-  updateTable(filterData(allData, searchTerm));
+      // Update the table
+      const tableBody = document.getElementById("tableBody");
+      tableBody.innerHTML = ""; // Clear existing rows
+
+      data.forEach((row, i) => {
+        let functionDetails;
+        try {
+          const parsed = JSON.parse(row.function_details);
+          functionDetails = JSON.stringify(parsed, null, 2);
+        } catch (e) {
+          functionDetails = row.function_details || "";
+        }
+
+        const timeOnly = row.timestamp
+          ? row.timestamp.split(", ")[1] || row.timestamp
+          : "";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+              <td class="xxx-large">${i + 1}.</td>
+              <td class="xx-large">${row.name || ""}</td>
+              <td class="function-details"><pre>${functionDetails}</pre></td>
+              <td class="x-large">${row.total_functions || 0}</td>
+              <td>${row.completion_time_formatted || ""}</td>
+              <td>${timeOnly}</td>
+            `;
+
+        tableBody.appendChild(tr);
+      });
+
+      // Store all data
+      allData = data;
+
+      // Reset the inactivity timer after refreshing data
+      resetInactivityTimer();
+    })
+    .catch((error) => {
+      console.error("Error fetching game data:", error);
+    });
 }
 
-// Function to clear search
-function clearSearch() {
-  document.getElementById("searchInput").value = "";
-  searchTerm = "";
-  resetInactivityTimer();
-  updateTable(allData);
+// Function to convert time to seconds for sorting
+function timeToSeconds(timeStr) {
+  if (!timeStr || timeStr === "00:00:00") return Number.MAX_SAFE_INTEGER;
+  const [hours, minutes, seconds] = timeStr.split(":").map(Number);
+  return hours * 3600 + minutes * 60 + seconds;
 }
