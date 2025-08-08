@@ -1,63 +1,64 @@
 let allData = []; // Store all data for filtering
 let searchTerm = "";
+let userActive = true;
+let scrollingActive = false;
+let scrollDirection = 1; // 1 for down, -1 for up
+let scrollInterval;
+let inactivityTimer;
+let container;
+
+// Function to start auto-scrolling
+function startAutoScroll() {
+  if (scrollingActive) return;
+
+  scrollingActive = true;
+  scrollInterval = setInterval(() => {
+    // Scroll by 1 pixel in the current direction
+    container.scrollBy({
+      top: scrollDirection,
+      behavior: "auto",
+    });
+
+    // Check if we've reached the bottom or top
+    if (
+      container.scrollTop + container.clientHeight >=
+      container.scrollHeight - 5
+    ) {
+      scrollDirection = -1; // Switch to scrolling up
+    } else if (container.scrollTop <= 5) {
+      scrollDirection = 1; // Switch to scrolling down
+    }
+  }, 30); // Adjust speed by changing this value
+}
+
+// Function to stop auto-scrolling
+function stopAutoScroll() {
+  if (!scrollingActive) return;
+
+  scrollingActive = false;
+  if (scrollInterval) {
+    clearInterval(scrollInterval);
+    scrollInterval = null;
+  }
+}
+
+// Reset inactivity timer when user interacts
+function resetInactivityTimer() {
+  userActive = true;
+  stopAutoScroll();
+
+  if (inactivityTimer) {
+    clearTimeout(inactivityTimer);
+  }
+
+  inactivityTimer = setTimeout(() => {
+    userActive = false;
+    startAutoScroll();
+  }, 5000); // 5 seconds of inactivity
+}
 
 document.addEventListener("DOMContentLoaded", function () {
-  const container = document.getElementById("tableContainer");
-  let userActive = true;
-  let scrollingActive = false;
-  let scrollDirection = 1; // 1 for down, -1 for up
-  let scrollInterval;
-  let inactivityTimer;
-
-  // Function to start auto-scrolling
-  function startAutoScroll() {
-    if (scrollingActive) return;
-
-    scrollingActive = true;
-    scrollInterval = setInterval(() => {
-      // Scroll by 1 pixel in the current direction
-      container.scrollBy({
-        top: scrollDirection,
-        behavior: "auto",
-      });
-
-      // Check if we've reached the bottom or top
-      if (
-        container.scrollTop + container.clientHeight >=
-        container.scrollHeight - 5
-      ) {
-        scrollDirection = -1; // Switch to scrolling up
-      } else if (container.scrollTop <= 5) {
-        scrollDirection = 1; // Switch to scrolling down
-      }
-    }, 30); // Adjust speed by changing this value
-  }
-
-  // Function to stop auto-scrolling
-  function stopAutoScroll() {
-    if (!scrollingActive) return;
-
-    scrollingActive = false;
-    if (scrollInterval) {
-      clearInterval(scrollInterval);
-      scrollInterval = null;
-    }
-  }
-
-  // Reset inactivity timer when user interacts
-  function resetInactivityTimer() {
-    userActive = true;
-    stopAutoScroll();
-
-    if (inactivityTimer) {
-      clearTimeout(inactivityTimer);
-    }
-
-    inactivityTimer = setTimeout(() => {
-      userActive = false;
-      startAutoScroll();
-    }, 5000); // 5 seconds of inactivity
-  }
+  container = document.getElementById("tableContainer");
 
   // Set up event listeners for user activity
   ["mousemove", "mousedown", "keypress", "scroll", "touchstart"].forEach(
@@ -167,44 +168,19 @@ function refreshData() {
         );
       });
 
-      // Update the table
-      const tableBody = document.getElementById("tableBody");
-      tableBody.innerHTML = ""; // Clear existing rows
-
-      data.forEach((row, i) => {
-        let functionDetails;
-        try {
-          const parsed = JSON.parse(row.function_details);
-          functionDetails = JSON.stringify(parsed, null, 2);
-        } catch (e) {
-          functionDetails = row.function_details || "";
-        }
-
-        const timeOnly = row.timestamp
-          ? row.timestamp.split(", ")[1] || row.timestamp
-          : "";
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-              <td class="xxx-large">${i + 1}.</td>
-              <td class="xx-large">${row.name || ""}</td>
-              <td class="function-details"><pre>${functionDetails}</pre></td>
-              <td class="x-large">${row.total_functions || 0}</td>
-              <td>${row.completion_time_formatted || ""}</td>
-              <td>${timeOnly}</td>
-            `;
-
-        tableBody.appendChild(tr);
-      });
-
-      // Store all data
+      // Store all data first (important for search functionality)
       allData = data;
 
-      // Reset the inactivity timer after refreshing data
-      resetInactivityTimer();
+      // If there's an active search, filter the data
+      if (searchTerm) {
+        updateTable(filterData(allData, searchTerm));
+      } else {
+        // Otherwise update with all data
+        updateTable(allData);
+      }
     })
     .catch((error) => {
-      console.error("Error fetching game data:", error);
+      console.error("Error fetching data:", error);
     });
 }
 
