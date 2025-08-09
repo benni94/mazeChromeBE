@@ -84,7 +84,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Function to handle search input
 function handleSearch() {
-  searchTerm = document.getElementById("searchInput").value.trim();
+  const searchInput = document.getElementById("searchInput");
+  const clearButton = document.getElementById("clearSearch");
+  
+  searchTerm = searchInput.value.trim();
+
+  // Show/hide clear button based on input content
+  if (searchInput.value.length > 0) {
+    clearButton.classList.remove("hidden");
+  } else {
+    clearButton.classList.add("hidden");
+  }
 
   // If searching, stop auto-scroll
   if (searchTerm) {
@@ -99,8 +109,12 @@ function handleSearch() {
 
 // Function to clear search
 function clearSearch() {
-  document.getElementById("searchInput").value = "";
+  const searchInput = document.getElementById("searchInput");
+  const clearButton = document.getElementById("clearSearch");
+  
+  searchInput.value = "";
   searchTerm = "";
+  clearButton.classList.add("hidden");
   resetInactivityTimer();
   updateTable(allData);
 }
@@ -139,7 +153,7 @@ function updateTable(data) {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-          <td class="xxx-large">${originalPosition}.</td>
+          <td class="xxx-large"><span class="platzierung">${originalPosition}</span></td>
           <td class="xx-large">${row.name || ""}</td>
           <td class="function-details"><pre>${functionDetails}</pre></td>
           <td class="x-large">${row.total_functions || 0}</td>
