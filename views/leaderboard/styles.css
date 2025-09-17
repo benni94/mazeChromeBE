@@ -1,206 +1,233 @@
 body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    font-size: larger;
-    background-color: #f9f9f9;
-    color: #333;
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  font-size: larger;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+/* Top-left brand logo */
+.brand-logo {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+  display: inline-block;
+}
+
+.brand-logo img {
+  height: 100px;
+  width: auto;
+  display: block;
 }
 
 .search-container {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
 }
 
 .search-input-wrapper {
-    position: relative;
-    display: inline-block;
+  position: relative;
+  display: inline-block;
 }
 
 #searchInput {
-    padding: 10px 40px 10px 10px;
-    width: 250px;
-    border: 2px solid #ccc;
-    border-radius: 4px;
-    font-size: 16px;
+  padding: 10px 40px 10px 10px;
+  width: 250px;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
 }
 
 .clear-button {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    font-size: 18px;
-    color: #999;
-    cursor: pointer;
-    padding: 0;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .clear-button:hover {
-    background-color: #f0f0f0;
-    color: #666;
+  background-color: #f0f0f0;
+  color: #666;
 }
 
 .clear-button.hidden {
-    display: none;
+  display: none;
 }
 
 .table-container {
-    overflow-x: auto;
+  overflow-x: auto;
 }
 
 table {
-    border-collapse: collapse;
-    width: 100%;
-    background-color: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    position: relative;
+  border-collapse: collapse;
+  width: 100%;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 th,
 td {
-    border: 1px solid #ddd;
-    padding: 12px;
-    text-align: center;
+  border: 1px solid #ddd;
+  padding: 12px;
+  text-align: center;
 }
 
 th {
-    background-color: #995ba5;
-    color: white;
-    position: sticky;
-    top: 0;
-    z-index: 10;
+  background-color: #995ba5;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 tr:nth-child(even) {
-    background-color: #f9f9f9;
+  background-color: #f9f9f9;
 }
 
 tr:hover {
-    background-color: #f1f1f1;
+  background-color: #f1f1f1;
 }
 
 td.function-details {
-    text-align: left;
+  text-align: left;
 }
 
 td.xxx-large {
-    font-size: xxx-large;
+  font-size: xxx-large;
 }
 
 td.xx-large {
-    font-size: xx-large;
+  font-size: xx-large;
 }
 
 td.x-large {
-    font-size: x-large;
+  font-size: x-large;
 }
 
 .container {
-    max-width: 1000px;
-    margin: 0 auto;
-    height: 88vh;
-    overflow: auto;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+  max-width: 1000px;
+  margin: 0 auto;
+  height: 88vh;
+  overflow: auto;
+  border-radius: 8px;
 }
 
 .table-wrapper {
-    flex: 1;
-    overflow: auto;
+  flex: 1;
+  overflow: auto;
 }
 
 .sticky-header {
-    background-color: #995ba5;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+  background-color: #995ba5;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .table-body {
-    max-height: calc(80vh - 100px);
-    overflow-y: auto;
+  max-height: calc(80vh - 100px);
+  overflow-y: auto;
 }
 
 .platzierung {
-    background-color: #995ba5;
-    border-radius: 8px;
-    padding-left: 20px;
-    padding-right: 20px;
-    padding-top: 10px;
-    padding-bottom: 10px;
-    color: white;
+  background-color: #995ba5;
+  border-radius: 8px;
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  color: white;
 }
 
 /* Responsive Design */
+@media (max-width: 1400px) {
+  .brand-logo img {
+    height: 64px;
+  }
+}
 
 @media (max-width: 940px) {
-    th, td {
-        /* font-size: 12px; */
-        padding: 6px;
-    }
+  th,
+  td {
+    /* font-size: 12px; */
+    padding: 6px;
+  }
 
-    /* Hide the third column (function-details) */
-    th:nth-child(3),
-    td:nth-child(3) {
-        display: none;
-    }
+  /* Hide the third column (function-details) */
+  th:nth-child(3),
+  td:nth-child(3) {
+    display: none;
+  }
 
-    .platzierung {
-        border-radius: inherit;
-        background-color: inherit;
-        color: inherit;
-        padding: inherit
-    }
+  .platzierung {
+    border-radius: inherit;
+    background-color: inherit;
+    color: inherit;
+    padding: inherit;
+  }
 }
 
 @media (max-width: 768px) {
-    body {
-        margin: 10px;
-        font-size: medium;
-    }
+  body {
+    margin: 10px;
+    font-size: medium;
+  }
 
-    table {
-        font-size: 14px;
-    }
+  .brand-logo img {
+    height: 50px;
+  }
 
-    th,
-    td {
-        padding: 8px;
-    }
+  table {
+    font-size: 14px;
+  }
 
-    td.xxx-large,
-    td.xx-large,
-    td.x-large {
-        font-size: large;
-    }
+  th,
+  td {
+    padding: 8px;
+  }
 
-    .container {
-        margin: 0 auto;
-        height: 97vh;
-        overflow-y: auto;
-        overflow-x: auto;
-        scroll-behavior: smooth;
-        position: relative;
-    }
+  td.xxx-large,
+  td.xx-large,
+  td.x-large {
+    font-size: large;
+  }
+
+  .container {
+    margin: 0 auto;
+    height: 97vh;
+    overflow-y: auto;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    position: relative;
+  }
 }
 
-
-
 @media (max-width: 480px) {
-
-    /* Hide the fourth column (function-details) */
-    th:nth-child(4),
-    td:nth-child(4) {
-        display: none;
-    }
+  .search-container {
+    justify-content: end;
+  }
+  #searchInput {
+    width: 200px;
+  }
+  /* Hide the fourth column (function-details) */
+  th:nth-child(4),
+  td:nth-child(4) {
+    display: none;
+  }
 }

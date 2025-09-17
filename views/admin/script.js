@@ -161,3 +161,24 @@ document
 document.addEventListener("DOMContentLoaded", function () {
   updateServiceStatus();
 });
+
+// Load 30 mock records
+document.getElementById("loadMockBtn")?.addEventListener("click", async function () {
+  if (!confirm("30 Mock-Datensätze in die Tabelle game_progress einfügen?")) {
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/load-mock-data", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await response.json();
+    showMessage(data.success, data.message || (data.success ? "Mock-Daten eingefügt" : "Einfügen fehlgeschlagen"));
+  } catch (error) {
+    showMessage(false, "Fehler: " + error.message);
+  }
+});

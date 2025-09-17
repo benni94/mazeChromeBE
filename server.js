@@ -561,3 +561,111 @@ app.get("/api/backup-service/status", basicAuth, (req, res) => {
 });
 
 // #endregion
+
+// #region mock data
+
+// Endpoint to load 30 mock users into the database
+app.post("/api/load-mock-data", basicAuth, (req, res) => {
+  try {
+    db.serialize(() => {
+      db.run("BEGIN TRANSACTION");
+
+      const stmt = db.prepare(`
+        INSERT INTO game_progress (
+          name,
+          level,
+          function_details,
+          total_functions,
+          completion_time_ms,
+          completion_time_formatted,
+          timestamp
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      const now = Date.now();
+
+      for (let i = 1; i <= 30; i++) {
+        const name = `Mock User ${i}`;
+        const level = Math.floor(Math.random() * 10) + 1; // 1..10
+
+        // Build function_details as object with counts per function
+        const functionDetailsObj = {
+          geradeausBewegen: Math.floor(Math.random() * 15), // 0..14
+          if: Math.floor(Math.random() * 7), // 0..6
+          linksDrehen: Math.floor(Math.random() * 8), // 0..7
+          rechtsDrehen: Math.floor(Math.random() * 7), // 0..6
+          while: Math.floor(Math.random() * 9), // 0..8
+        };
+
+        const totalFunctions = Object.values(functionDetailsObj).reduce(
+          (a, b) => a + b,
+          0
+        );
+
+        // random completion time between 30s and 15min
+        const completionTimeMs =
+          30_000 + Math.floor(Math.random() * (15 * 60 * 1000 - 30_000));
+
+        const secs = Math.floor(completionTimeMs / 1000);
+        const h = String(Math.floor(secs / 3600)).padStart(2, "0");
+        const m = String(Math.floor((secs % 3600) / 60)).padStart(2, "0");
+        const s = String(secs % 60).padStart(2, "0");
+        const completionTimeFormatted = `${h}:${m}:${s}`;
+
+        const dt = new Date(now - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000));
+        const ts = `${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}:${String(dt.getSeconds()).padStart(2, "0")}`;
+
+        stmt.run(
+          name,
+          level,
+          JSON.stringify(functionDetailsObj),
+          totalFunctions,
+          completionTimeMs,
+          completionTimeFormatted,
+          ts
+        );
+      }
+
+      stmt.finalize((err) => {
+        if (err) {
+          db.run("ROLLBACK");
+          return res
+            .status(500)
+            .json({
+              success: false,
+              message: "Fehler beim Einfügen der Mock-Daten",
+              error: err.message,
+            });
+        }
+
+        db.run("COMMIT", (commitErr) => {
+          if (commitErr) {
+            return res
+              .status(500)
+              .json({
+                success: false,
+                message: "Fehler beim Commit der Mock-Daten",
+                error: commitErr.message,
+              });
+          }
+          return res
+            .status(200)
+            .json({
+              success: true,
+              message: "30 Mock-Datensätze wurden eingefügt.",
+            });
+        });
+      });
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Unerwarteter Fehler beim Laden der Mock-Daten",
+        error: error.message,
+      });
+  }
+});
+
+// #endregion
