@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Game Progress Data</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
+    <a
+      class="brand-logo"
+      href="https://www.boesch.at/karriere/lehre-bei-boesch"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <img src="boesch_logo.png" alt="Bösch Logo" />
+    </a>
+    <div class="search-container">
+      <div class="search-input-wrapper">
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Nach Namen suchen..."
+        />
+        <button id="clearSearch" class="clear-button hidden">×</button>
+      </div>
+    </div>
+
+    <div class="container" id="tableContainer">
+      <table>
+        <thead>
+          <tr>
+            <th>Platzierung</th>
+            <th>Name</th>
+            <th>verw. Funktionen</th>
+            <th>Funktionen ges.</th>
+            <th>Spielzeit</th>
+            <th>Uhrzeit</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- Table rows will be inserted dynamically by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
