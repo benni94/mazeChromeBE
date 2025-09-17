@@ -15,10 +15,21 @@ body {
   display: inline-block;
 }
 
-.brand-logo img {
+/* Shared logo image sizing */
+.brand-logo img,
+.maze-logo img {
   height: 100px;
   width: auto;
   display: block;
+}
+
+/* Top-right maze logo */
+.maze-logo {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: inline-block;
 }
 
 .search-container {
@@ -157,7 +168,8 @@ td.x-large {
 
 /* Responsive Design */
 @media (max-width: 1400px) {
-  .brand-logo img {
+  .brand-logo img,
+  .maze-logo img {
     height: 64px;
   }
 }
@@ -189,7 +201,8 @@ td.x-large {
     font-size: medium;
   }
 
-  .brand-logo img {
+  .brand-logo img,
+  .maze-logo img {
     height: 50px;
   }
 
@@ -229,5 +242,8 @@ td.x-large {
   th:nth-child(4),
   td:nth-child(4) {
     display: none;
+  }
+  .maze-logo img {
+   display: none;
   }
 }
