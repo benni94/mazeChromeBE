@@ -71,6 +71,9 @@ select {
   margin-top: 20px;
   padding: 10px;
   border-radius: 4px;
+  position: absolute;
+  right: 30px;
+  top: 50%;
 }
 
 .success {

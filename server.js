@@ -9,8 +9,52 @@ const isFly = !!process.env.FLY_APP_NAME;
 const app = express();
 const port = process.env.PORT || 3000;
 
+const ADMIN_USER = "admin";
+const ADMIN_PASSWORD = "@password666";
+
 let backupInterval = null;
 const BACKUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+let submissionsLocked = false; // When true, POST /api/data will reject inserts
+const RATE_LIMIT_MAX = 1; // max requests
+const RATE_LIMIT_WINDOW_MS = 20 * 1000; // per 20 seconds
+
+// Simple in-memory rate limiter buckets: ip -> [timestamps]
+const rateBuckets = new Map();
+
+function dataRateLimiter(req, res, next) {
+  try {
+    const now = Date.now();
+    const windowStart = now - RATE_LIMIT_WINDOW_MS;
+    const ip =
+      req.ip ||
+      req.headers["x-forwarded-for"]?.toString().split(",")[0].trim() ||
+      (req.connection && req.connection.remoteAddress) ||
+      "unknown";
+
+    let bucket = rateBuckets.get(ip) || [];
+    // prune old timestamps
+    bucket = bucket.filter((ts) => ts > windowStart);
+
+    if (bucket.length >= RATE_LIMIT_MAX) {
+      const retryMs = bucket[0] + RATE_LIMIT_WINDOW_MS - now;
+      res.set("Retry-After", Math.ceil(Math.max(retryMs, 0) / 1000));
+      return res.status(429).json({
+        success: false,
+        message: `Rate limit exceeded: max ${RATE_LIMIT_MAX} requests in ${Math.floor(
+          RATE_LIMIT_WINDOW_MS / 1000
+        )}s. Bitte versuchen Sie es später erneut.`,
+      });
+    }
+
+    bucket.push(now);
+    rateBuckets.set(ip, bucket);
+    next();
+  } catch (e) {
+    // On error, allow request but log it
+    console.error("dataRateLimiter error:", e);
+    next();
+  }
+}
 
 // Enable CORS for your extension
 app.use(cors());
@@ -99,7 +143,11 @@ db.serialize(() => {
 // #region receive data
 
 // Endpoint to receive data with name uniqueness check
-app.post("/api/data", (req, res) => {
+app.post("/api/data", dataRateLimiter, (req, res) => {
+  // Reject inserts when submissions are locked
+  if (submissionsLocked) {
+    return res.status(423).send("Einsendungen sind derzeit gesperrt.");
+  }
   const data = req.body;
   const name = data.name || "Anonymous";
 
@@ -225,6 +273,11 @@ if (isFly) {
     console.log("Server is running at:");
     console.log(`- http://localhost:${port}`);
     console.log(`- http://${localIP}:${port} (accessible on local network)`);
+    console.log("Admin page is running at:");
+    console.log(`- http://localhost:${port}/admin`);
+    console.log(
+      `- http://${localIP}:${port}/admin (accessible on local network)`
+    );
   });
 }
 
@@ -295,7 +348,7 @@ const basicAuth = (req, res, next) => {
   const password = auth[1];
 
   // Check credentials (hardcoded admin/password)
-  if (username === "admin" && password === "password") {
+  if (username === ADMIN_USER && password === ADMIN_PASSWORD) {
     next(); // Authentication successful
   } else {
     res.setHeader("WWW-Authenticate", "Basic");
@@ -560,6 +613,35 @@ app.get("/api/backup-service/status", basicAuth, (req, res) => {
   });
 });
 
+// Submissions lock endpoints (admin protected)
+app.get("/api/submissions-lock/status", basicAuth, (req, res) => {
+  res.status(200).json({
+    success: true,
+    locked: submissionsLocked,
+    message: submissionsLocked
+      ? "Einsendungen sind GESPERRT"
+      : "Einsendungen sind FREIGEGEBEN",
+  });
+});
+
+app.post("/api/submissions-lock/set", basicAuth, (req, res) => {
+  const { locked } = req.body || {};
+  if (typeof locked !== "boolean") {
+    return res.status(400).json({
+      success: false,
+      message: "Field 'locked' (boolean) is required",
+    });
+  }
+  submissionsLocked = locked;
+  return res.status(200).json({
+    success: true,
+    message: `Einsendungen wurden ${
+      submissionsLocked ? "gesperrt" : "freigegeben"
+    }.`,
+    locked: submissionsLocked,
+  });
+});
+
 // #endregion
 
 // #region mock data
@@ -612,8 +694,12 @@ app.post("/api/load-mock-data", basicAuth, (req, res) => {
         const s = String(secs % 60).padStart(2, "0");
         const completionTimeFormatted = `${h}:${m}:${s}`;
 
-        const dt = new Date(now - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000));
-        const ts = `${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}:${String(dt.getSeconds()).padStart(2, "0")}`;
+        const dt = new Date(
+          now - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)
+        );
+        const ts = `${String(dt.getHours()).padStart(2, "0")}:${String(
+          dt.getMinutes()
+        ).padStart(2, "0")}:${String(dt.getSeconds()).padStart(2, "0")}`;
 
         stmt.run(
           name,
@@ -629,42 +715,34 @@ app.post("/api/load-mock-data", basicAuth, (req, res) => {
       stmt.finalize((err) => {
         if (err) {
           db.run("ROLLBACK");
-          return res
-            .status(500)
-            .json({
-              success: false,
-              message: "Fehler beim Einfügen der Mock-Daten",
-              error: err.message,
-            });
+          return res.status(500).json({
+            success: false,
+            message: "Fehler beim Einfügen der Mock-Daten",
+            error: err.message,
+          });
         }
 
         db.run("COMMIT", (commitErr) => {
           if (commitErr) {
-            return res
-              .status(500)
-              .json({
-                success: false,
-                message: "Fehler beim Commit der Mock-Daten",
-                error: commitErr.message,
-              });
-          }
-          return res
-            .status(200)
-            .json({
-              success: true,
-              message: "30 Mock-Datensätze wurden eingefügt.",
+            return res.status(500).json({
+              success: false,
+              message: "Fehler beim Commit der Mock-Daten",
+              error: commitErr.message,
             });
+          }
+          return res.status(200).json({
+            success: true,
+            message: "30 Mock-Datensätze wurden eingefügt.",
+          });
         });
       });
     });
   } catch (error) {
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Unerwarteter Fehler beim Laden der Mock-Daten",
-        error: error.message,
-      });
+    return res.status(500).json({
+      success: false,
+      message: "Unerwarteter Fehler beim Laden der Mock-Daten",
+      error: error.message,
+    });
   }
 });
 

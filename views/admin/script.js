@@ -182,3 +182,68 @@ document.getElementById("loadMockBtn")?.addEventListener("click", async function
     showMessage(false, "Fehler: " + error.message);
   }
 });
+
+// ==========================
+// Submissions Lock Control
+// ==========================
+
+function updateSubmissionsLockStatus() {
+  const statusEl = document.getElementById("submissionsLockStatus");
+  const lockBtn = document.getElementById("lockBtn");
+  const unlockBtn = document.getElementById("unlockBtn");
+
+  if (!statusEl || !lockBtn || !unlockBtn) return;
+
+  fetch("/api/submissions-lock/status", {
+    headers: { "Content-Type": "application/json" },
+  })
+    .then((r) => r.json())
+    .then((data) => {
+      const locked = !!data.locked;
+      statusEl.textContent = locked
+        ? "Einsendungen sind GESPERRT"
+        : "Einsendungen sind FREIGEGEBEN";
+      statusEl.className = locked ? "status-stopped" : "status-running";
+      lockBtn.disabled = locked;
+      unlockBtn.disabled = !locked;
+    })
+    .catch((err) => {
+      statusEl.textContent = "Fehler beim Abrufen des Status: " + err.message;
+      statusEl.className = "status-error";
+    });
+}
+
+document.getElementById("lockBtn")?.addEventListener("click", async function () {
+  try {
+    const resp = await fetch("/api/submissions-lock/set", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locked: true }),
+    });
+    const data = await resp.json();
+    showMessage(data.success, data.message || (data.locked ? "Gesperrt" : "Freigegeben"));
+    updateSubmissionsLockStatus();
+  } catch (error) {
+    showMessage(false, "Fehler: " + error.message);
+  }
+});
+
+document.getElementById("unlockBtn")?.addEventListener("click", async function () {
+  try {
+    const resp = await fetch("/api/submissions-lock/set", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locked: false }),
+    });
+    const data = await resp.json();
+    showMessage(data.success, data.message || (data.locked ? "Gesperrt" : "Freigegeben"));
+    updateSubmissionsLockStatus();
+  } catch (error) {
+    showMessage(false, "Fehler: " + error.message);
+  }
+});
+
+// Refresh submissions lock status when page loads
+document.addEventListener("DOMContentLoaded", function () {
+  updateSubmissionsLockStatus();
+});

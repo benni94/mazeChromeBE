@@ -1,79 +1,104 @@
 <!DOCTYPE html>
 <html lang="de">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Datenbank-Admins</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
 
-<body>
+  <body>
     <h1>Dashboard für Datenbank-Admins</h1>
+    <div id="message" style="display: none"></div>
 
     <div class="container">
-        <div class="card">
-            <h2>Name aktualisieren</h2>
-            <form id="updateNameForm">
-                <div>
-                    <label for="findName">Suchen nach Name:</label>
-                    <input type="text" id="findName" name="findName" required>
-                </div>
-                <div>
-                    <label for="replaceName">Ersetzen durch:</label>
-                    <input type="text" id="replaceName" name="replaceName" required>
-                </div>
-                <button type="submit">Namen aktualisieren</button>
-            </form>
-        </div>
+      <div class="card">
+        <h2>Name aktualisieren</h2>
+        <form id="updateNameForm">
+          <div>
+            <label for="findName">Suchen nach Name:</label>
+            <input type="text" id="findName" name="findName" required />
+          </div>
+          <div>
+            <label for="replaceName">Ersetzen durch:</label>
+            <input type="text" id="replaceName" name="replaceName" required />
+          </div>
+          <button type="submit">Namen aktualisieren</button>
+        </form>
+      </div>
 
-        <div class="card">
-            <h2>Backup-Service</h2>
-            <p>Der Service erstellt alle 5 Minuten eine Sicherungskopie der Datenbank</p>
-            <form id="backupServiceForm">
-                <div id="serviceStatus">Status wird abgefragt...</div>
-                <div class="button-group">
-                    <button type="button" id="startServiceBtn" class="success">Service starten</button>
-                    <button type="button" id="stopServiceBtn" class="warning">Service stoppen</button>
-                </div>
-            </form>
-        </div>
+      <div class="card">
+        <h2>Backup-Service</h2>
+        <p>
+          Der Service erstellt alle 5 Minuten eine Sicherungskopie der Datenbank
+        </p>
+        <form id="backupServiceForm">
+          <div id="serviceStatus">Status wird abgefragt...</div>
+          <div class="button-group">
+            <button type="button" id="startServiceBtn" class="success">
+              Service starten
+            </button>
+            <button type="button" id="stopServiceBtn" class="warning">
+              Service stoppen
+            </button>
+          </div>
+        </form>
+      </div>
 
-        <div class="card">
-            <h2>Datenbank wiederherstellen</h2>
-            <form id="restoreDbForm">
-                <div>
-                    <label for="backupPath">Backup-Datei: data/gamedata_backup.db</label>
-                </div>
-                <button type="submit" class="warning">Datenbank wiederherstellen</button>
-            </form>
-        </div>
+      <div class="card">
+        <h2>Datenbank wiederherstellen</h2>
+        <form id="restoreDbForm">
+          <div>
+            <label for="backupPath"
+              >Backup-Datei: data/gamedata_backup.db</label
+            >
+          </div>
+          <button type="submit" class="warning">
+            Datenbank wiederherstellen
+          </button>
+        </form>
+      </div>
 
-        <div class="card">
-            <h2>Tabelle leeren</h2>
-            <form id="clearTableForm">
-                <div>
-                    <label for="tableName">Tabellenname: game_progress</label>
-                    <input type="text" id="tableName" name="tableName" required>
-                </div>
-                <button type="submit" class="danger">Tabelle leeren</button>
-            </form>
-        </div>
+      <div class="card">
+        <h2>Tabelle leeren</h2>
+        <form id="clearTableForm">
+          <div>
+            <label for="tableName">Tabellenname: game_progress</label>
+            <input type="text" id="tableName" name="tableName" required />
+          </div>
+          <button type="submit" class="danger">Tabelle leeren</button>
+        </form>
+      </div>
 
-        <div class="card">
-            <h2>Mock-Daten laden</h2>
-            <p>Fügt 30 Beispiel-Datensätze in die Tabelle <code>game_progress</code> ein.</p>
-            <div class="button-group">
-                <button type="button" id="loadMockBtn">30 Mock-Daten laden</button>
-            </div>
+      <div class="card">
+        <h2>Mock-Daten laden</h2>
+        <p>
+          Fügt 30 Beispiel-Datensätze in die Tabelle
+          <code>game_progress</code> ein.
+        </p>
+        <div class="button-group">
+          <button type="button" id="loadMockBtn">30 Mock-Daten laden</button>
         </div>
+      </div>
 
+      <div class="card">
+        <h2>Einsendungen sperren</h2>
+        <p>
+          Blockiert neue Einträge über <code>/api/data</code>. Bereits
+          vorhandene Daten bleiben unverändert.
+        </p>
+        <form id="submissionsLockForm">
+          <div id="submissionsLockStatus">Status wird abgefragt...</div>
+          <div class="button-group">
+            <button type="button" id="lockBtn" class="warning">Sperren</button>
+            <button type="button" id="unlockBtn" class="success">
+              Freigeben
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
-    <div id="message" style="display: none;"></div>
-
     <script src="script.js"></script>
-
-</body>
-
+  </body>
 </html>
