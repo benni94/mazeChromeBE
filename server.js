@@ -18,6 +18,48 @@ let submissionsLocked = false; // When true, POST /api/data will reject inserts
 const RATE_LIMIT_MAX = 1; // max requests
 const RATE_LIMIT_WINDOW_MS = 20 * 1000; // per 20 seconds
 
+// =============================
+// Persistent Config (maxLevel)
+// =============================
+const configDir = isFly ? "/data" : path.join(__dirname, "data");
+const configPath = path.join(configDir, "config.json");
+
+// Ensure config directory exists
+try {
+  if (!fs.existsSync(configDir)) {
+    fs.mkdirSync(configDir, { recursive: true });
+  }
+} catch (e) {
+  console.error("Failed to ensure config directory:", e.message);
+}
+
+function loadConfig() {
+  try {
+    if (fs.existsSync(configPath)) {
+      const raw = fs.readFileSync(configPath, "utf8");
+      const parsed = JSON.parse(raw);
+      return {
+        maxLevel: Number.isInteger(parsed.maxLevel) ? parsed.maxLevel : 5,
+      };
+    }
+  } catch (e) {
+    console.error("Failed to load config.json:", e.message);
+  }
+  return { maxLevel: 5 };
+}
+
+function saveConfig(cfg) {
+  try {
+    fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
+    return true;
+  } catch (e) {
+    console.error("Failed to save config.json:", e.message);
+    return false;
+  }
+}
+
+let appConfig = loadConfig();
+
 // Simple in-memory rate limiter buckets: ip -> [timestamps]
 const rateBuckets = new Map();
 
@@ -303,7 +345,6 @@ app.get("/", (_, res) => {
     "leaderboard",
     "leaderboard.html"
   );
-
   fs.readFile(filePath, "utf8", (err, html) => {
     if (err) {
       console.error("Error reading HTML file:", err);
@@ -313,17 +354,16 @@ app.get("/", (_, res) => {
     res.send(html);
   });
 });
-
-// Add this endpoint to provide the data for the table
-app.get("/api/gamedata", (_, res) => {
-  db.all("SELECT * FROM sorted_game_progress", [], (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-
-    res.json(rows);
-  });
+// Public endpoint to expose maxLevel for the extension/front-end
+// Returns plain text number (e.g., 7)
+app.get("/maxLevel", (_, res) => {
+  try {
+    const value = appConfig?.maxLevel ?? 5;
+    // Return as plain text for maximum compatibility
+    res.type("text/plain").send(String(value));
+  } catch (e) {
+    res.type("text/plain").send("5");
+  }
 });
 
 // #endregion
@@ -613,6 +653,34 @@ app.get("/api/backup-service/status", basicAuth, (req, res) => {
   });
 });
 
+// =============================
+// Admin: maxLevel configuration
+// =============================
+app.get("/api/config/max-level", basicAuth, (req, res) => {
+  return res.status(200).json({ success: true, maxLevel: appConfig.maxLevel });
+});
+
+app.post("/api/config/max-level", basicAuth, (req, res) => {
+  const { maxLevel } = req.body || {};
+  const n = Number(maxLevel);
+  if (!Number.isInteger(n) || n < 1 || n > 10) {
+    return res.status(400).json({
+      success: false,
+      message: "maxLevel muss eine Ganzzahl zwischen 1 und 10 sein",
+    });
+  }
+
+  appConfig.maxLevel = n;
+  const ok = saveConfig(appConfig);
+  if (!ok) {
+    return res.status(500).json({
+      success: false,
+      message: "Konnte Konfiguration nicht speichern",
+    });
+  }
+  return res.status(200).json({ success: true, maxLevel: appConfig.maxLevel });
+});
+
 // Submissions lock endpoints (admin protected)
 app.get("/api/submissions-lock/status", basicAuth, (req, res) => {
   res.status(200).json({
@@ -747,3 +815,4 @@ app.post("/api/load-mock-data", basicAuth, (req, res) => {
 });
 
 // #endregion
+ 

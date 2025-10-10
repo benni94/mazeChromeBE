@@ -247,3 +247,73 @@ document.getElementById("unlockBtn")?.addEventListener("click", async function (
 document.addEventListener("DOMContentLoaded", function () {
   updateSubmissionsLockStatus();
 });
+
+// ==========================
+// Max Level Configuration
+// ==========================
+
+function computeBackendMaxLevelUrl() {
+  try {
+    const origin = window.location.origin;
+    return `${origin}/maxLevel`;
+  } catch (_) {
+    return "/maxLevel";
+  }
+}
+
+async function refreshMaxLevelUI() {
+  const currentEl = document.getElementById("currentMaxLevel");
+  const inputEl = document.getElementById("maxLevelInput");
+  const urlEl = document.getElementById("maxLevelUrl");
+  if (urlEl) urlEl.textContent = computeBackendMaxLevelUrl();
+
+  try {
+    const resp = await fetch("/api/config/max-level", {
+      headers: { "Content-Type": "application/json" },
+    });
+    const data = await resp.json();
+    const value = Number.isInteger(data.maxLevel) ? data.maxLevel : 5;
+    if (currentEl) currentEl.textContent = `Aktueller Wert: ${value}`;
+    if (inputEl && !inputEl.value) inputEl.value = String(value);
+  } catch (error) {
+    if (currentEl) currentEl.textContent = `Aktueller Wert: unbekannt`;
+  }
+}
+
+document.getElementById("maxLevelForm")?.addEventListener("submit", async function (e) {
+  e.preventDefault();
+  const inputEl = document.getElementById("maxLevelInput");
+  const n = Number(inputEl?.value);
+  if (!Number.isInteger(n) || n < 1 || n > 10) {
+    showMessage(false, "Bitte eine Ganzzahl zwischen 1 und 10 eingeben");
+    return;
+  }
+
+  try {
+    const resp = await fetch("/api/config/max-level", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ maxLevel: n }),
+    });
+    const data = await resp.json();
+    showMessage(data.success, data.message || "Max Level gespeichert");
+  } catch (error) {
+    showMessage(false, "Fehler: " + error.message);
+  }
+  refreshMaxLevelUI();
+});
+
+document.getElementById("copyMaxLevelUrlBtn")?.addEventListener("click", async function () {
+  const url = computeBackendMaxLevelUrl();
+  try {
+    await navigator.clipboard.writeText(url);
+    showMessage(true, "URL kopiert: " + url);
+  } catch (e) {
+    showMessage(false, "Konnte URL nicht kopieren");
+  }
+});
+
+// Initialize max level section on load
+document.addEventListener("DOMContentLoaded", function () {
+  refreshMaxLevelUI();
+});
