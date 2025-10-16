@@ -354,6 +354,28 @@ app.get("/", (_, res) => {
     res.send(html);
   });
 });
+// Public API: return game data for leaderboard
+app.get("/api/gamedata", (_, res) => {
+  try {
+    db.all(
+      `SELECT id, name, level, function_details, total_functions, completion_time_ms, completion_time_formatted, timestamp FROM sorted_game_progress`,
+      (err, rows) => {
+        if (err) {
+          console.error("Error querying gamedata:", err);
+          return res
+            .status(500)
+            .json({ success: false, message: "Database query failed", error: err.message });
+        }
+        res.status(200).json(rows || []);
+      }
+    );
+  } catch (e) {
+    console.error("Unexpected error in /api/gamedata:", e);
+    return res
+      .status(500)
+      .json({ success: false, message: "Unexpected server error", error: e.message });
+  }
+});
 // Public endpoint to expose maxLevel for the extension/front-end
 // Returns plain text number (e.g., 7)
 app.get("/maxLevel", (_, res) => {
